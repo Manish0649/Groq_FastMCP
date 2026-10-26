@@ -1,222 +1,327 @@
-# ⚡ Groq + FastMCP + FastAPI with Langfuse Observability
+# Groq + FastMCP + FastAPI with Langfuse
 
-A production-ready AI agent architecture combining **Groq Cloud LLMs**, **FastMCP** tool server, **FastAPI** web framework, and **Langfuse** observability & tracing with a modern web dashboard.
+## About the Project
 
----
+This project is built using Groq, FastMCP, FastAPI, and Langfuse to create an AI agent that can answer questions and use tools when needed.
 
-## 🎯 Architecture Overview
+The project also includes a Streamlit frontend where users can interact with the agent, test different queries, view tool executions, and monitor traces.
 
-This project hosts an in-process **FastMCP** tool server inside **FastAPI** with combined lifespans and lets **Groq Cloud** models execute tools via two modes:
+I have implemented two ways to run the agent:
 
-| Mode | Who Runs Tools? | Public URL Required? | Best For | Endpoint |
-| :--- | :--- | :--- | :--- | :--- |
-| **Local Loop** | Your Python process, using Groq `chat.completions` | ❌ No | Development, private tools, local testing | `POST /ask/local` |
-| **Remote MCP** | Groq's servers, via the Responses API (beta) | ✅ Yes (HTTPS via ngrok/tunnel) | Production, single-call agents | `POST /ask/remote` |
+- **Local Agent:** The Python application handles tool execution using the Groq Chat Completions API.
+- **Remote MCP:** Groq uses the Responses API to access tools through a publicly accessible MCP server.
 
-### 🔍 Integrated Langfuse Observability
-Both modes are fully instrumented with **Langfuse**:
-- **Agent Traces:** Captures full prompt-to-response lifecycle, timestamps, and overall latency.
-- **LLM Generations:** Tracks model parameters, prompt messages, assistant thoughts, token counts (prompt, completion, total), and inference duration.
-- **FastMCP Tool Spans:** Records tool arguments, outputs, execution latencies, and error states for each tool (`add`, `multiply`, `get_weather`).
-- **Interactive Monitoring Dashboard:** Built-in web UI with live KPI metrics, search, waterfall execution trees, raw JSON payloads, and deep links to Langfuse Cloud!
+Langfuse is integrated to track LLM calls, tool executions, token usage, response time, and errors.
 
----
+## Technologies Used
 
-## 📂 Project Structure
+- **Python** – Main programming language
+- **Groq API** – To interact with LLMs
+- **FastMCP** – To create and manage MCP tools
+- **FastAPI** – To build REST APIs
+- **Streamlit** – To build the frontend
+- **Langfuse** – To monitor and trace agent execution
+- **Pydantic** – To validate request and response data
+- **Pytest** – To test the application
 
-```
+## Project Structure
+
+```text
 GROQ_FastMCP/
-├── .env.example              # Environment variables template
-├── .env                      # Local environment configuration
-├── .gitignore                # Git ignore rules
-├── requirements.txt          # Python dependencies
-├── README.md                 # Project documentation
+├── .env.example
+├── .gitignore
+├── requirements.txt
+├── README.md
 ├── app/
 │   ├── __init__.py
-│   ├── config.py             # Loads Groq & Langfuse config from .env
-│   ├── main.py               # FastAPI app, FastMCP mount, combined lifespans
-│   ├── schemas.py            # Pydantic request & response models
+│   ├── config.py
+│   ├── main.py
+│   ├── schemas.py
 │   ├── api/
 │   │   ├── __init__.py
-│   │   └── routes.py         # REST endpoints (/ask/local, /ask/remote, /api/monitoring/*)
+│   │   └── routes.py
 │   ├── llm/
 │   │   ├── __init__.py
-│   │   ├── groq_local.py     # Local agent loop with FastMCP Client & Langfuse tracing
-│   │   └── groq_remote.py    # Remote MCP agent via Groq Responses API
+│   │   ├── groq_local.py
+│   │   └── groq_remote.py
 │   ├── mcp_server/
 │   │   ├── __init__.py
-│   │   ├── server.py         # FastMCP instance registering tools
+│   │   ├── server.py
 │   │   └── tools/
 │   │       ├── __init__.py
-│   │       ├── math_tools.py # add, multiply
-│   │       └── weather_tools.py # get_weather
+│   │       ├── math_tools.py
+│   │       └── weather_tools.py
 │   └── monitoring/
 │       ├── __init__.py
-│       └── tracker.py        # Langfuse client sync and local trace repository
-├── streamlit_app.py          # Streamlit Agent Console & Langfuse Monitoring Dashboard
+│       └── tracker.py
+├── streamlit_app.py
 ├── scripts/
 │   ├── __init__.py
-│   └── run_local_agent.py    # CLI entry point to test the agent without HTTP
+│   └── run_local_agent.py
 └── tests/
     ├── __init__.py
-    ├── test_tools.py         # In-memory FastMCP tool unit tests
-    └── test_api.py           # FastAPI & Langfuse trace integration tests
+    ├── test_tools.py
+    └── test_api.py
 ```
 
----
+## Features
 
-## 🚀 Quickstart Guide
+### 1. AI Agent
 
-### 1. Prerequisites & Installation
+The agent uses a Groq language model to understand user queries and decide when to call a tool.
+
+Currently, the available tools are:
+
+- `add` – Adds two numbers.
+- `multiply` – Multiplies two numbers.
+- `get_weather` – Retrieves weather information based on the implemented tool logic.
+
+### 2. Local Agent Mode
+
+In this mode, the Python application manages the agent loop. It sends the user's query to Groq, executes the selected tools through FastMCP, and sends the results back to the model.
+
+This mode is useful for local development and testing without exposing the MCP server to the internet.
+
+Endpoint: `POST /ask/local`
+
+### 3. Remote MCP Mode
+
+In this mode, Groq accesses the MCP server through a public HTTPS endpoint using the Responses API.
+
+A public tunnel, such as ngrok, is required when running the MCP server locally.
+
+Endpoint: `POST /ask/remote`
+
+**Note:** This mode depends on the availability and compatibility of the Groq Responses API and its remote MCP support.
+
+### 4. Langfuse Monitoring
+
+Langfuse is used to monitor the agent's execution and understand how requests are processed.
+
+The monitoring features include:
+
+- Agent traces and execution details
+- LLM calls and model information
+- Tool inputs, outputs, and execution time
+- Token usage and response latency
+- Errors during execution
+
+The project also includes a monitoring dashboard in Streamlit to explore traces and view execution details.
+
+### 5. Streamlit Frontend
+
+The Streamlit application provides a simple interface to interact with the agent.
+
+It includes:
+
+- A chat interface for testing queries
+- Options to select local or remote mode
+- Example prompts for maths and weather queries
+- Tool execution details
+- Token usage and latency information
+- A Langfuse monitoring dashboard
+- A registry of available MCP tools
+- Configuration and setup information
+
+A simulation mode is also included in the frontend for exploring the dashboard without connecting to the live services, where supported by the implementation.
+
+## Getting Started
+
+### Step 1: Clone the Repository
 
 ```bash
-# Clone and navigate to the project directory
+git clone <your-repository-url>
 cd GROQ_FastMCP
+```
 
-# Create and activate virtual environment (Windows PowerShell)
+Replace `<your-repository-url>` with your repository URL.
+
+### Step 2: Create a Virtual Environment
+
+For Windows PowerShell:
+
+```powershell
 python -m venv .venv
-.venv\Scripts\activate
+.venv\Scripts\Activate.ps1
+```
 
-# Install dependencies
+If activation is blocked by your PowerShell execution policy, use the appropriate environment activation method for your system.
+
+### Step 3: Install Dependencies
+
+```bash
 pip install -r requirements.txt
 ```
 
-### 2. Configure Environment Variables
+### Step 4: Configure Environment Variables
 
-Copy `.env.example` to `.env`:
+Create a `.env` file by copying the example file:
 
-```bash
-copy .env.example .env
+```powershell
+Copy-Item .env.example .env
 ```
 
-Edit `.env` with your API keys:
+Add your API keys and configuration to the `.env` file:
 
 ```env
-# Groq Cloud API Credentials (https://console.groq.com/keys)
-GROQ_API_KEY=gsk_your_groq_api_key_here
+GROQ_API_KEY=your_groq_api_key
 GROQ_MODEL=llama-3.3-70b-versatile
 
-# Remote MCP Public Endpoint (Only required for /ask/remote mode)
 MCP_PUBLIC_URL=https://your-tunnel.ngrok-free.app/mcp-server/mcp
 
-# Langfuse Observability (https://cloud.langfuse.com)
-LANGFUSE_PUBLIC_KEY=pk-lf-your_public_key
-LANGFUSE_SECRET_KEY=sk-lf-your_secret_key
+LANGFUSE_PUBLIC_KEY=your_langfuse_public_key
+LANGFUSE_SECRET_KEY=your_langfuse_secret_key
 LANGFUSE_HOST=https://cloud.langfuse.com
 ```
 
-> **Note:** If you haven't configured Langfuse or Groq keys yet, you can still start the server and run the **built-in simulation mode** on the frontend to explore the observability dashboard immediately!
+Get your Groq API key from [Groq Console](https://console.groq.com/keys).
 
-### 3. Launch Frontend (Streamlit)
+For tracing, create a project in [Langfuse Cloud](https://cloud.langfuse.com) and configure the corresponding keys.
 
-Run the modern Streamlit frontend:
+The `MCP_PUBLIC_URL` variable is needed only for remote MCP mode.
+
+**Important:** Keep your `.env` file private and never upload API keys to GitHub.
+
+### Step 5: Run the Streamlit Application
 
 ```bash
 streamlit run streamlit_app.py
 ```
 
-Open your browser and navigate to:
-👉 **`http://localhost:8501`**
+Open the following URL in your browser:
 
-### 4. (Optional) Run FastAPI REST API Server
+```text
+http://localhost:8501
+```
 
-If you also wish to expose the HTTP REST endpoints (`/ask/local`, `/ask/remote`, `/mcp-server/mcp`):
+### Step 6: Run the FastAPI Server
+
+Open another terminal, activate the virtual environment, and run:
 
 ```bash
 uvicorn app.main:app --reload --port 8000
 ```
 
-👉 **`http://localhost:8000`**
+The API will be available at:
 
----
+```text
+http://localhost:8000
+```
 
-## 🖥️ Streamlit & Web Console Overview
+You can also access the FastAPI Swagger documentation at:
 
-The Streamlit app ([`streamlit_app.py`](file:///c:/Fellowship_projects/GROQ_FastMCP/streamlit_app.py)) features:
-1. **💬 Agent Playground:**
-   - Interactive prompt tester for both Local Loop (`/ask/local`) and Remote MCP (`/ask/remote`) modes.
-   - Preset buttons (Weather + Math, Multi-step calculations).
-   - Live step-by-step reasoning & tool execution visualizer.
-   - Real-time token and latency metrics.
-2. **📊 Langfuse Monitoring Dashboard:**
-   - 4 Live KPI counters: Total Traces, FastMCP Tool Calls, Average Latency (ms), Total Tokens (Prompt + Completion).
-   - Trace Explorer table with mode filter, search, and status badges.
-   - **Waterfall Execution Tree:** Visualizes Root Span ➔ Groq LLM Generation ➔ FastMCP Tool Spans ➔ Final Output.
-   - Raw JSON payload inspector.
-   - Direct link to Langfuse Cloud for deep-dive observability.
-3. **🛠️ MCP Tools Registry:**
-   - Inspect all FastMCP tools (`add`, `multiply`, `get_weather`) and their JSON Schemas.
-4. **⚙️ Config & Setup Guide:**
-   - Visual healthcheck indicators for Groq, FastMCP server, and Langfuse connectivity.
-2. **Langfuse Monitoring Dashboard (`#monitoring`):**
-   - KPI counters: Total Traces, Total Tool Calls, Average Latency (ms), Total Tokens (Prompt + Completion).
-   - Trace Explorer table with mode filters, search, and status badges.
-   - **Waterfall Execution Tree:** Visualizes Root Span ➔ Groq LLM Generation ➔ FastMCP Tool Spans ➔ Final Output.
-   - Raw JSON payload inspector with 1-click clipboard copy.
-   - Direct link to Langfuse Cloud for deep-dive observability.
-3. **MCP Tools Registry (`#tools`):**
-   - Inspect all FastMCP tools (`add`, `multiply`, `get_weather`) and their JSON Schemas.
-   - 1-click "Try in Console" buttons.
-4. **Config & Setup Guide (`#settings`):**
-   - Visual healthcheck indicators for Groq, FastMCP server, and Langfuse connectivity.
+```text
+http://localhost:8000/docs
+```
 
----
+## Testing the API
 
-## 🧪 Testing & CLI Usage
+### Local Agent
 
-### Running Tests
-Execute the automated test suite covering FastMCP tools, API endpoints, and monitoring:
+Send a POST request to `/ask/local` with a question.
+
+Example using cURL:
+
+```bash
+curl -X POST http://localhost:8000/ask/local \
+  -H "Content-Type: application/json" \
+  -d "{\"question\": \"What is 17 + 25?\"}"
+```
+
+### Remote MCP
+
+First, start ngrok in a separate terminal:
+
+```bash
+ngrok http 8000
+```
+
+Copy the HTTPS URL generated by ngrok and update `MCP_PUBLIC_URL` in the `.env` file. Make sure the URL points to the MCP endpoint configured in the application.
+
+Then send a request:
+
+```bash
+curl -X POST http://localhost:8000/ask/remote \
+  -H "Content-Type: application/json" \
+  -d "{\"question\": \"What is 482 * 19?\"}"
+```
+
+Remote mode requires valid credentials, a publicly accessible MCP endpoint, and support for the configured API.
+
+## Running the CLI Agent
+
+The local agent can also be tested directly from the terminal without sending an HTTP request.
+
+```bash
+python -m scripts.run_local_agent "What is 17 + 25?"
+```
+
+## Running Tests
+
+Run the test suite using Pytest:
 
 ```bash
 pytest
 ```
 
-### CLI Agent Runner
-Run queries directly from your terminal:
+The tests cover the MCP tools, API endpoints, and monitoring-related functionality implemented in the project.
 
-```bash
-python -m scripts.run_local_agent "What is 17 + 25, and what's the weather in Rajpura?"
+## Adding a New MCP Tool
+
+New tools can be added to the project by following these steps.
+
+### Step 1: Create the Tool
+
+For example, create `app/mcp_server/tools/discount_tools.py`:
+
+```python
+def compute_discount(price: float, percentage: float) -> float:
+    """Calculate the discounted price."""
+    return round(price * (1 - percentage / 100), 2)
 ```
 
-### REST API Examples (cURL)
+### Step 2: Register the Tool
 
-**Local Agent Loop (`/ask/local`):**
-```bash
-curl -X POST http://localhost:8000/ask/local \
-  -H "Content-Type: application/json" \
-  -d '{"question": "What is 17 + 25, and what is the weather in Rajpura?"}'
+Import the function in `app/mcp_server/server.py` and register it with the FastMCP instance:
+
+```python
+from app.mcp_server.tools.discount_tools import compute_discount
+
+mcp.tool(compute_discount)
 ```
 
-**Remote MCP (`/ask/remote`):**
-```bash
-# 1. Start tunnel: ngrok http 8000
-# 2. Set MCP_PUBLIC_URL=https://<your-ngrok-subdomain>.ngrok-free.app/mcp-server/mcp in .env
-# 3. Call endpoint:
-curl -X POST http://localhost:8000/ask/remote \
-  -H "Content-Type: application/json" \
-  -d '{"question": "What is 482 * 19?"}'
-```
+Follow the same registration pattern used by the existing tools in the project.
 
-**Fetch Live Langfuse Monitoring Traces:**
-```bash
-curl http://localhost:8000/api/monitoring/traces
-```
+### Step 3: Test the Tool
 
----
+Restart the application and test the new tool with a suitable query. You can also add unit tests to check whether it returns the expected result.
 
-## ➕ Adding a New FastMCP Tool
+## What I Learned
 
-1. Create or add your Python function in `app/mcp_server/tools/`:
-   ```python
-   def compute_discount(price: float, percentage: float) -> float:
-       """Calculate discounted price given original price and percentage."""
-       return round(price * (1.0 - percentage / 100.0), 2)
-   ```
-2. Register it in `app/mcp_server/server.py`:
-   ```python
-   from app.mcp_server.tools.discount_tools import compute_discount
-   mcp.tool(compute_discount)
-   ```
-3. Restart the server. The tool is automatically detected, exposed to Groq, and tracked in Langfuse!
-#   G r o q _ F a s t M C P  
- 
+While working on this project, I got practical experience with:
+
+- Creating MCP tools using FastMCP
+- Connecting an LLM to external tools
+- Building REST APIs with FastAPI
+- Working with Groq-hosted language models
+- Understanding the difference between local and remote tool execution
+- Integrating Langfuse for LLM observability
+- Building an interactive interface with Streamlit
+- Testing Python applications using Pytest
+
+## Future Improvements
+
+Some improvements that can be made to the project are:
+
+- Add more useful MCP tools.
+- Improve error handling and request validation.
+- Add authentication and rate limiting to the API.
+- Improve the monitoring dashboard.
+- Add more automated tests.
+- Deploy the application so it can be accessed online.
+
+## Conclusion
+
+This project combines FastMCP, Groq, FastAPI, and Langfuse to demonstrate how an AI agent can use tools and how its execution can be monitored.
+
+It was also a way to explore MCP-based tool integration, API development, and observability in a single application.
